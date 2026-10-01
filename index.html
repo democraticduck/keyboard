@@ -15,7 +15,7 @@
     
     body {
         width: min(1180px,100% - 40px);
-        margin: auto;
+        margin: 40px auto;
     }
     
     #piano-container {
@@ -105,110 +105,188 @@
   </style>
 </head>
 <body>
-    
+    <label><input type="checkbox" id="sustain-toggle">Synth</label>
     <div id="piano-container">
         <div id="red-stripe"></div>
         <div id="key-container"></div>
     </div>
     
   <script>
-    const LOW = 0, HIGH = 16;
+    const LOW = 24, HIGH = 65;
+
+    const statusEl = document.getElementById('status');
+    let sustainMode = false;
+    let pianoReady = false;
+
+    const synth = new Tone.PolySynth(Tone.Synth, {
+      volume: -8,
+      oscillator: {
+        type: "custom",
+        partials: [1, 0.6, 0.35, 0.2, 0.1, 0.05, 0.02]
+      },
+      envelope: {
+        attack: 0.005,
+        decay: 0.1,
+        sustain: 1.0,
+        release: 0.6,
+        releaseCurve: "exponential"
+      }
+    }).toDestination();
+
     const piano = new Tone.Sampler({
-    urls: {
-        A1: "A1.mp3",
-        C2: "C2.mp3",
-        "F#2": "Fs2.mp3",
+      volume: -6,
+      urls: {
         A2: "A2.mp3",
         C3: "C3.mp3",
+        "D#3": "Ds3.mp3",
         "F#3": "Fs3.mp3",
         A3: "A3.mp3",
         C4: "C4.mp3",
+        "D#4": "Ds4.mp3",
         "F#4": "Fs4.mp3",
         A4: "A4.mp3",
         C5: "C5.mp3",
+        "D#5": "Ds5.mp3",
         "F#5": "Fs5.mp3",
         A5: "A5.mp3",
         C6: "C6.mp3",
+        "D#6": "Ds6.mp3",
         "F#6": "Fs6.mp3",
         A6: "A6.mp3",
         C7: "C7.mp3"
-    },
-    release: 1.5,
-    baseUrl: "https://tonejs.github.io/audio/salamander/"
-}).toDestination();
+      },
+      release: 0.5,
+      baseUrl: "https://tonejs.github.io/audio/salamander/",
+      onload: () => {
+        pianoReady = true;
+        statusEl.textContent = "Piano samples loaded.";
+      }
+    }).toDestination();
 
-function playNote(note) {
-    Tone.start(); // Ensures browser audio context is unlocked
-    piano.triggerAttack(note);
-}
+    document.getElementById('sustain-toggle').addEventListener('change', (e) => {
+      sustainMode = e.target.checked;
+      synth.releaseAll();
+      piano.releaseAll();
+    });
 
-function releaseNote(note) {
-    piano.triggerRelease(note); // Must pass the specific note!
-}
+    function playNote(note) {
+      Tone.start();
+      if (sustainMode || !pianoReady) {
+        synth.triggerAttack(note);
+      } else {
+        piano.triggerAttack(note);
+      }
+    }
+
+    function releaseNote(note) {
+      synth.triggerRelease(note);
+      piano.triggerRelease(note);
+    }
 
     (function init() {
-        const roundDownNumber = (num, nDec) => Math.floor(num * (10**nDec)) / 10**nDec;
+      const pianoCont = document.querySelector('#key-container');
+      const frag = document.createDocumentFragment();
+      const blackKeyPos = new Set([1, 3, 6, 8, 10]);
+      const keys = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 
-        const pianoCont = document.querySelector('#key-container');
-        const frag = document.createDocumentFragment();
-        const blackKeyPos = new Set([1, 3, 6, 8, 10]);
-        const keys = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+      const numOfWhiteKeys = (() => {
+        const nWhiteKeysBetween = (() => {
+          let tmp = 0;
+          let i = LOW % 12;
+          while (true) {
+            if (!blackKeyPos.has(i)) tmp++;
+            if (i === HIGH % 12) break;
+            i = (i + 1) % 12;
+          }
+          return tmp;
+        })();
+        return (Math.trunc((HIGH - LOW) / 12) * 7) + nWhiteKeysBetween;
+      })();
 
-        const numOfWhiteKeys = (() => {
-            const nWhiteKeysBetween = (() => {
-                let tmp = 0;
-                let i = LOW%12;
-                while(true) {
-                    if(!blackKeyPos.has(i)) tmp++;
-                    if(i === HIGH%12) break;
-                    i = (i + 1) % 12;
-                }
-                return tmp;
-            })()
-            return (Math.trunc((HIGH-LOW) / 12) * 7) + nWhiteKeysBetween;
-        })()
+      let wi = 0;
+      const whiteKeyWidth = 100 / numOfWhiteKeys;
+      const bw = whiteKeyWidth * 0.58;
 
-        let wi = 0; // num of white keys until now
-        const whiteKeyWidth = 100 / numOfWhiteKeys;
-        const bw = whiteKeyWidth * 0.58; // black key width
-        for(let i = LOW; i <= HIGH; i++) {
-            const key = document.createElement('div');
-            const isBlackKey = blackKeyPos.has(i % 12);
-            if(!isBlackKey) {
-                key.className = 'key white';
-                wi++;
-            }
-            else {
-                key.className = 'key black';
-                key.style.width = `${bw}%`
-                key.style.left = `${((wi * whiteKeyWidth) - bw / 2)}%`
-            }
+      for (let i = LOW; i <= HIGH; i++) {
+        const key = document.createElement('div');
+        const isBlackKey = blackKeyPos.has(i % 12);
 
-            
-            key.addEventListener('mousedown', (event) => {
-                if (event.button === 0) {
-                    key.classList.add('down');
-                    playNote(`${keys[i % 12] + (Math.trunc(i / 12) + 2)}`);
-                }
-            });
-            key.addEventListener('mouseup', () => {
-            key.classList.remove('down');
-                releaseNote();
-            });
-            
-            key.addEventListener('mouseleave', () => {
-                key.classList.remove('down');
-                releaseNote();
-            });
-            frag.appendChild(key);
+        if (!isBlackKey) {
+          key.className = 'key white';
+          wi++;
+        } else {
+          key.className = 'key black';
+          key.style.width = `${bw}%`;
+          key.style.left = `${(wi * whiteKeyWidth) - (bw / 2)}%`;
         }
-        
-        let curActiveKey = null;
-        
 
-        pianoCont.appendChild(frag);
+        key.dataset.note = `${keys[i % 12]}${Math.trunc(i / 12) + 1}`;
+        frag.appendChild(key);
+      }
 
-    })()
+      pianoCont.appendChild(frag);
+
+      let curActiveKey = null;
+      let isPointerDown = false;
+      let lastX = 0, lastY = 0;
+
+      function activateKey(key) {
+        if (key === curActiveKey) return;
+
+        if (curActiveKey) {
+          curActiveKey.classList.remove('down');
+          releaseNote(curActiveKey.dataset.note);
+        }
+
+        if (key && pianoCont.contains(key)) {
+          curActiveKey = key;
+          curActiveKey.classList.add('down');
+          playNote(curActiveKey.dataset.note);
+        } else {
+          curActiveKey = null;
+        }
+      }
+
+      function keyAtPoint(x, y) {
+        const el = document.elementFromPoint(x, y);
+        return el && el.closest('.key');
+      }
+
+      pianoCont.addEventListener('pointerdown', (e) => {
+        if (e.pointerType === 'mouse' && e.button !== 0) return;
+        e.preventDefault();
+        isPointerDown = true;
+        pianoCont.setPointerCapture(e.pointerId);
+        lastX = e.clientX;
+        lastY = e.clientY;
+        activateKey(e.target.closest('.key'));
+      });
+
+      pianoCont.addEventListener('pointermove', (e) => {
+        if (!isPointerDown) return;
+
+        const dx = e.clientX - lastX;
+        const dy = e.clientY - lastY;
+        const steps = Math.max(1, Math.ceil(Math.hypot(dx, dy) / 6));
+
+        for (let i = 1; i <= steps; i++) {
+          const key = keyAtPoint(lastX + (dx * i) / steps, lastY + (dy * i) / steps);
+          activateKey(key);
+        }
+
+        lastX = e.clientX;
+        lastY = e.clientY;
+      });
+
+      function stopGlissando() {
+        if (!isPointerDown) return;
+        isPointerDown = false;
+        activateKey(null);
+      }
+
+      pianoCont.addEventListener('pointerup', stopGlissando);
+      pianoCont.addEventListener('pointercancel', stopGlissando);
+    })();
   </script>
 </body>
 </html>
