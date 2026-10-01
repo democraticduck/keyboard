@@ -113,25 +113,38 @@
     
   <script>
     const LOW = 0, HIGH = 16;
-    const synth = new Tone.Synth({
-        oscillator: {
-            type: "triangle" // Triangle waves sound slightly closer to a piano than square waves
-        },
-        envelope: {
-            attack: 0.01,  // How fast the sound reaches full volume
-            decay: 0.1,    // How fast it drops to the sustain level
-            sustain: 0.3,  // The volume level while the key is held down
-            release: 1.5   // FADEOUT: Takes 1.5 seconds to fade to silence after release
-        }
-    }).toDestination();
+    const piano = new Tone.Sampler({
+    urls: {
+        A1: "A1.mp3",
+        C2: "C2.mp3",
+        "F#2": "Fs2.mp3",
+        A2: "A2.mp3",
+        C3: "C3.mp3",
+        "F#3": "Fs3.mp3",
+        A3: "A3.mp3",
+        C4: "C4.mp3",
+        "F#4": "Fs4.mp3",
+        A4: "A4.mp3",
+        C5: "C5.mp3",
+        "F#5": "Fs5.mp3",
+        A5: "A5.mp3",
+        C6: "C6.mp3",
+        "F#6": "Fs6.mp3",
+        A6: "A6.mp3",
+        C7: "C7.mp3"
+    },
+    release: 1.5,
+    baseUrl: "https://tonejs.github.io/audio/salamander/"
+}).toDestination();
 
-    function playNote(note) {
-        synth.triggerAttack(note);
-    }
+function playNote(note) {
+    Tone.start(); // Ensures browser audio context is unlocked
+    piano.triggerAttack(note);
+}
 
-    function releaseNote() {
-        synth.triggerRelease();
-    }
+function releaseNote(note) {
+    piano.triggerRelease(note); // Must pass the specific note!
+}
 
     (function init() {
         const roundDownNumber = (num, nDec) => Math.floor(num * (10**nDec)) / 10**nDec;
@@ -190,6 +203,9 @@
             frag.appendChild(key);
         }
         
+        let curActiveKey = null;
+        
+
         pianoCont.appendChild(frag);
 
     })()
