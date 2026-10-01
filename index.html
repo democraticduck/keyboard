@@ -1,30 +1,31 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <script src="https://unpkg.com/tone"></script>
   <title>Digital Keyboard</title>
-  
+
   <style>
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
     }
-    
+
     body {
       width: min(1180px, 100% - 40px);
       margin: 40px auto;
+      padding: 20px;
     }
-    
+
     #piano-container {
       display: flex;
       position: relative;
       margin: auto;
       padding: 12px 12px 16px;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,.05), inset 0 -2px 0 rgba(0,0,0,.35), 0 34px 44px -28px rgba(42,27,10,.55);
-      min-width: 840px;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .05), inset 0 -2px 0 rgba(0, 0, 0, .35), 0 34px 44px -28px rgba(42, 27, 10, .55);
       border-radius: 14px;
       background: black;
     }
@@ -33,18 +34,18 @@
       position: absolute;
       top: 12px;
       left: 12px;
-      right: 12px; 
+      right: 12px;
       height: 7px;
       background: #722F29;
       box-shadow: inset 0 -1px 0 rgba(0, 0, 0, .4);
       z-index: 3;
-      pointer-events: none; 
+      pointer-events: none;
     }
 
     .key {
       cursor: pointer;
     }
-    
+
     #key-container {
       width: 100%;
       position: relative;
@@ -99,26 +100,161 @@
       box-shadow: inset 0 -5px 0 rgba(255, 255, 255, .06), 0 2px 4px rgba(0, 0, 0, .4);
     }
 
-    #control-container {
+    .glabel {
+      display: block;
+      font-size: 9.5px;
+      letter-spacing: .26em;
+      text-transform: uppercase;
+      color: #8D7C61;
+    }
+
+    .console {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: stretch;
+      row-gap: 12px;
+      background: #241C13;
+      border-radius: 14px;
+      padding: 12px 8px;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .06), 0 18px 34px -22px rgba(40, 26, 10, .55);
+    }
+
+    .cgroup {
       display: flex;
       flex-direction: column;
+      justify-content: center;
+      gap: 9px;
+      padding: 6px 22px;
+      border-right: 1px solid rgba(235, 224, 200, .1);
+    }
+
+    .cgroup:last-child {
+      border-right: none;
+    }
+
+    .cgroup.level {
+      margin-left: auto;
+    }
+
+    .segmented {
+      display: flex;
+      gap: 3px;
+      background: rgba(0, 0, 0, .28);
+      padding: 3px;
+      border-radius: 8px;
+    }
+
+    .segmented button {
+      appearance: none;
+      background: transparent;
+      border: 0;
+      color: #A08F72;
+      font-family: inherit;
+      font-size: 10px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      padding: 7px 11px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: .15s;
+      touch-action: manipulation;
+    }
+
+    .segmented button:hover {
+      color: #EFE4CB;
+    }
+
+    .segmented button.on {
+      background: rgba(198, 140, 62, .22);
+      color: #F2D9A6;
+      box-shadow: inset 0 0 0 1px rgba(217, 165, 85, .45);
+    }
+
+    input[type=range] {
+      appearance: none;
+      -webkit-appearance: none;
+      width: 130px;
+      height: 22px;
+      background: transparent;
+      cursor: pointer;
+    }
+
+    input[type=range]::-webkit-slider-runnable-track {
+      height: 2px;
+      background: rgba(235, 224, 200, .28);
+      border-radius: 2px;
+    }
+
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #D9A555;
+      border: 3px solid #241C13;
+      box-shadow: 0 0 0 1px rgba(217, 165, 85, .6);
+      margin-top: -6px;
+    }
+
+    input[type=range]::-moz-range-track {
+      height: 2px;
+      background: rgba(235, 224, 200, .28);
+    }
+
+    input[type=range]::-moz-range-thumb {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #D9A555;
+      border: 3px solid #241C13;
+      box-shadow: 0 0 0 1px rgba(217, 165, 85, .6);
+    }
+
+    button:focus-visible,
+    input:focus-visible {
+      outline: 1.5px dashed rgba(192, 138, 62, .75);
+      outline-offset: 2px;
+    }
+
+    @media (max-width: 960px) {
+      .cgroup {
+        padding: 6px 14px;
+      }
+    }
+
+    .min-width {
+      min-width: 840px;
     }
   </style>
 </head>
+
 <body>
-  <div id="control-container">
-    <label><input type="checkbox" id="sustain-toggle" />Synth</label>
-    <label for="volume">Volume: <input type="range" id="volume" name="volume" min="0" max="100" value="100" step="1" /></label>
+
+  <div class="min-width">
+    <section class="console">
+      <div class="cgroup">
+        <span class="glabel">Voice</span>
+        <div class="segmented" id="voice-select" role="group">
+          <button type="button" data-voice="piano" class="on">Piano</button>
+          <button type="button" data-voice="synth">Synth</button>
+        </div>
+      </div>
+
+      <div class="cgroup level">
+        <span class="glabel">Level</span>
+        <input type="range" id="volume" name="volume" min="0" max="100" value="100" step="1"
+          aria-label="Master volume" />
+      </div>
+    </section>
+    <div id="piano-container">
+      <div id="red-stripe"></div>
+      <div id="key-container"></div>
+    </div>
   </div>
-  <div id="piano-container">
-    <div id="red-stripe"></div>
-    <div id="key-container"></div>
-  </div>
-    
   <script>
     const LOW = 24, HIGH = 65;
 
-    let sustainMode = false;
+    let sustainMode = false; // false = Piano, true = Synth
     let pianoReady = false;
 
     const synth = new Tone.PolySynth(Tone.Synth, {
@@ -165,11 +301,20 @@
       }
     }).toDestination();
 
-    document.getElementById('sustain-toggle').addEventListener('change', (e) => {
-      sustainMode = e.target.checked;
+
+    const voiceSelect = document.getElementById('voice-select');
+    voiceSelect.addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-voice]');
+      if (!btn) return;
+
+      voiceSelect.querySelectorAll('button').forEach(b => b.classList.remove('on'));
+      btn.classList.add('on');
+
+      sustainMode = (btn.dataset.voice === 'synth');
       synth.releaseAll();
       piano.releaseAll();
     });
+
 
     const volumeSlider = document.getElementById('volume');
     Tone.getDestination().volume.value = Tone.gainToDb(volumeSlider.value / 100);
@@ -298,4 +443,5 @@
     })();
   </script>
 </body>
+
 </html>
