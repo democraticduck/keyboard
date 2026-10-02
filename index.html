@@ -452,7 +452,7 @@
 
         const dx = e.clientX - lastX;
         const dy = e.clientY - lastY;
-        const steps = Math.max(1, Math.ceil(Math.hypot(dx, dy) / 6));
+        const steps = Math.max(1, Math.ceil(Math.hypot(dx, dy) / 5));
 
         for (let i = 1; i <= steps; i++) {
           const key = keyAtPoint(lastX + (dx * i) / steps, lastY + (dy * i) / steps);
